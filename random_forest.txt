@@ -1,0 +1,29 @@
+# makes the random forest submission
+
+library(randomForest)
+library(gbm)
+library(ipred)
+setwd("C:/Users/rthomas/Desktop/Kaggle/DigitRecognition")
+
+allData <- read.csv("train.csv", header=TRUE)
+#test <- read.csv("test.csv", header=TRUE)
+
+sample <- sample(1:nrow(allData),floor(0.1*nrow(allData)), replace=FALSE)
+train <- allData[sample,]
+holdOut <- allData[-sample,]
+
+labels <- as.factor(train[,1])
+labelsHold <- as.factor(holdOut[,1])
+pixels <- train[,-1]
+pixelsHold <- holdOut[,-1]
+
+rf <- randomForest(pixels, labels, xtest=pixelsHold, ntree=500, nodesize=3)
+rfpredictions <- levels(labels)[rf$test$predicted]
+
+gb <- gbm.fit(y = labels, x = pixels, distribution = "multinomial", n.trees = 500, n.minobsinnode = 3)
+gbpredictions <- predict(gb,pixelsHold,n.trees=500)
+
+rfincorrect <- sum(rfpredictions != labelsHold)
+gbincorrect <- sum(gbpredictions != labelsHold)
+
+bag <- ipredbagg(y=labels, X=pixels, ns=64, nbagg=25)
