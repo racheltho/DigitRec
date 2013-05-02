@@ -4,6 +4,7 @@ library(randomForest)
 library(gbm)
 library(ipred)
 library(caret)
+library("ggplot2")
 
 setwd("C:/Users/rthomas/Desktop/Kaggle/DigitRecognition")
 
@@ -24,7 +25,7 @@ bagincorrect <- array(0, 5)
 
 total <- length(labelsHold)
 
-rf <- randomForest(pixels, labels, xtest=pixelsHold, ntree=500, nodesize=3)
+rf <- randomForest(pixels, labels, xtest=pixelsHold, ntree=250, nodesize=3, importance=TRUE)
 rfpredictions <- levels(labels)[rf$test$predicted]
 
 gb <- gbm.fit(y = labels, x = pixels, distribution = "multinomial", n.trees = 1000, n.minobsinnode = 3)
@@ -63,10 +64,10 @@ bag_function <- function(x){
   bagpredictions <- predict(bag, newdata=pixelsHold)  
   return(sum(bagpredictions != labelsHold)/total)}
   
-library("ggplot2")
+
 
 # Given a row of pixels (representing a square image of a digit) and the label of the digit, display
-display.digit <- function(row_pixels, y = NULL, theta = 0)
+display.digit <- function(row_pixels, title = NULL)
 {
   l <- length(row_pixels)
   n <- sqrt(l);
@@ -74,12 +75,18 @@ display.digit <- function(row_pixels, y = NULL, theta = 0)
     stop("Length of input should be a perfect square.")  
   mat <- matrix(as.double(row_pixels), nrow=n, ncol=n)
   mat <- apply(mat,1,rev)
-  title <- "Variable Importance in Random Forest for Digit Recognition"
-  if(!is.null(y)) title <- paste(title, as.character(y))
-  if(theta != 0) title <- paste(title, "rotated", as.character(theta))
   p<-ggfluctuation(as.table(mat), type = "colour") +
     labs(title=title) +
     scale_fill_gradient(low = "white", high = "blue")
   print(p)
   Sys.sleep(0.5)
 }
+
+
+rf_error <- c(rf_error, NA, NA, NA)
+plotData <- data.frame(trees, gbm_error, rf_error)
+reData <- melt(plotData, id='trees')
+qplot(log(trees), value, data=reData, group=variable, color=variable, ylab="Error", xlab="Log(# Trees)", geom="point", size=50)
+
+
+
